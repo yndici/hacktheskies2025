@@ -1,0 +1,170 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <title>2D Map Planner</title>
+    <script src="https://cdn.maptiler.com/maptiler-sdk-js/v3.8.0/maptiler-sdk.umd.min.js"></script>
+    <link href="https://cdn.maptiler.com/maptiler-sdk-js/v3.8.0/maptiler-sdk.css" rel="stylesheet" />
+    <style>
+        body { margin: 0; padding: 0; display: flex; height: 100vh; font-family: sans-serif; }
+        #map { flex-grow: 1; }
+        #sidebar { width: 300px; padding: 20px; background-color: #f4f4f4; z-index: 10; overflow-y: auto; }
+        .location-info { margin-bottom: 15px; padding: 10px; border: 1px solid #ccc; background-color: #fff; }
+        .location-info h4 { margin-top: 0; }
+        button { padding: 10px; width: 100%; cursor: pointer; border: none; border-radius: 4px; }
+        #visualizeButton { background-color: #28a745; color: white; }
+        #visualizeButton:disabled { background-color: #ccc; cursor: not-allowed; }
+        #search-btn { background-color: #f39c12; color: white; margin-top: 5px; }
+        #location-input { padding: 8px; width: 100%; box-sizing: border-box; margin-bottom: 5px; }
+    </style>
+</head>
+<body>
+    <div id="map"></div>
+    <div id="sidebar">
+        <h2>Plan Your Journey</h2>
+
+        <div style="margin-bottom: 20px;">
+            <input type="text" id="location-input" placeholder="Search for a location...">
+            <button id="search-btn">Search & Zoom</button>
+            <p id="search-status" style="font-size: 0.8em; color: #555; margin: 5px 0 0 0;">Start or click on the map.</p>
+        </div>
+        
+        <p>Click two points on the map: **Start** (A) then **End** (B).</p>
+        
+        <div id="start-info" class="location-info">
+            <h4>Start Point (A):</h4>
+            <p id="start-coords">Click map to set.</p>
+        </div>
+        
+        <div id="end-info" class="location-info">
+            <h4>End Point (B):</h4>
+            <p id="end-coords">Click map to set.</p>
+        </div>
+        
+        <button id="visualizeButton" disabled>Visualize Journey</button>
+        
+        <div style="margin-top: 20px; border-top: 1px solid #ddd; padding-top: 10px;">
+            <p style="font-size: 0.9em;">**MapTiler Key: YOUR_MAPTILER_API_KEY**</p>
+            <p><a href="index-globe.html" style="color: #007bff;">← Back to Globe</a></p>
+        </div>
+    </div>
+    
+    <script>
+        // 🛑 IMPORTANT: REPLACE WITH YOUR MAPTILER KEY
+        maptilersdk.config.apiKey = '5wWbrG952VRV7YfNLV9j';
+
+        let startMarker, endMarker;
+        let startCoords = null;
+        let endCoords = null;
+
+        const map = new maptilersdk.Map({
+            container: 'map',
+            style: maptilersdk.MapStyle.STREETS, 
+            center: [0, 0], 
+            zoom: 2
+        });
+
+        const visualizeButton = document.getElementById('visualizeButton');
+
+
+        // --- SEARCH FUNCTIONALITY ---
+        async function searchLocation() {
+            const query = document.getElementById('location-input').value;
+            const status = document.getElementById('search-status');
+            if (!query) return;
+
+            const url = `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(query)}&format=json&limit=1`;
+
+            status.textContent = "Searching...";
+            
+            try {
+                const response = await fetch(url);
+                const data = await response.json();
+
+                if (data && data.length > 0) {
+                    const lat = parseFloat(data[0].lat);
+                    const lng = parseFloat(data[0].lon);
+                    
+                    map.flyTo({ 
+                        center: [lng, lat], 
+                        zoom: 10, 
+                        duration: 1500 
+                    });
+                    
+                    status.textContent = `Zoomed to: ${data[0].display_name.split(',')[0]}`;
+
+                } else {
+                    status.textContent = `Location not found: "${query}"`;
+                }
+            } catch (error) {
+                console.error("Geocoding error:", error);
+                status.textContent = "Error connecting to search service.";
+            }
+        }
+
+        document.getElementById('search-btn').addEventListener('click', searchLocation);
+        document.getElementById('location-input').addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                e.preventDefault();
+                searchLocation();
+            }
+        });
+        // --- END OF SEARCH FUNCTIONALITY ---
+
+
+        function updateCoordinates(type, coords) {
+            const lon = coords.lng.toFixed(4);
+            const lat = coords.lat.toFixed(4);
+            const displayId = type === 'start' ? 'start-coords' : 'end-coords';
+            document.getElementById(displayId).textContent = `Lon: ${lon}, Lat: ${lat}`;
+
+            if (type === 'start') {
+                startCoords = coords;
+            } else {
+                endCoords = coords;
+            }
+
+            if (startCoords && endCoords) {
+                visualizeButton.disabled = false;
+            }
+        }
+
+        map.on('click', (e) => {
+            const coords = e.lngLat;
+            
+            if (!startCoords) {
+                if (startMarker) startMarker.remove();
+                startMarker = new maptilersdk.Marker({ color: '#3498db' }).setLngLat(coords).addTo(map);
+                updateCoordinates('start', coords);
+            } else if (!endCoords) {
+                if (endMarker) endMarker.remove();
+                endMarker = new maptilersdk.Marker({ color: '#e74c3c' }).setLngLat(coords).addTo(map);
+                updateCoordinates('end', coords);
+            } else {
+                startCoords = null;
+                endCoords = null;
+                startMarker.remove();
+                endMarker.remove();
+                document.getElementById('start-coords').textContent = 'Click map to set.';
+                document.getElementById('end-coords').textContent = 'Click map to set.';
+                visualizeButton.disabled = true;
+                map.fire('click', e);
+            }
+        });
+
+        visualizeButton.addEventListener('click', () => {
+            if (startCoords && endCoords) {
+                const startLon = startCoords.lng.toFixed(4);
+                const startLat = startCoords.lat.toFixed(4);
+                const endLon = endCoords.lng.toFixed(4);
+                const endLat = endCoords.lat.toFixed(4);
+
+                const redirectURL = `index-globe.html?s_lon=${startLon}&s_lat=${startLat}&e_lon=${endLon}&e_lat=${endLat}`;
+                window.location.href = redirectURL;
+            } else {
+                alert('Please select both a start and end point.');
+            }
+        });
+    </script>
+</body>
+</html>
