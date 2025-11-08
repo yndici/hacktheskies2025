@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Global Eco-Route Planner</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="container">
+        <h1>🌍 Global Eco-Route Planner</h1>
+        <p>Optimize Your Commute for Planet and Health</p>
+
+        <form id="route-form">
+            <input type="text" id="origin" placeholder="Origin Coordinates (Pre-filled by Globe)" required>
+            <input type="text" id="destination" placeholder="Destination Coordinates (Pre-filled by Globe)" required>
+            <input type="time" id="time" value="08:00" required>
+            <button type="submit" id="calculate-btn">Calculate Eco-Optimized Route</button>
+        </form>
+
+        <div id="results-area" class="results-area" style="display: none;">
+            <h2>Commute Comparison</h2>
+
+            <div class="comparison-grid">
+                <div class="route-card fastest">
+                    <h3>🚗 Fastest Path (Drive)</h3>
+                    <p>Time: <span id="drive-time"></span></p>
+                    <p>CO₂: <span id="drive-co2"></span></p>
+                    <p>Health Risk: <span id="drive-risk"></span></p>
+                </div>
+                
+                <div class="route-card eco">
+                    <h3>🌳 Eco Path</h3>
+                    <p>Time: <span id="eco-time"></span></p>
+                    <p>CO₂: <span id="eco-co2"></span></p>
+                    <p>Stress Score: <span id="friction-score"></span></p>
+                </div>
+            </div>
+
+            <hr>
+
+            <div class="impact-section">
+                <h3>Climate Impact & Savings</h3>
+                <p>Net CO₂ Saved: <span id="savings-co2" class="big-number"></span></p>
+                <p>☁️ Sky Warming Offset: <span id="sky-offset" class="big-number"></span></p>
+            </div>
+        </div>
+    </div>
+
+    <script src="script.js"></script>
+</body>
+</html>

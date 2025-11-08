@@ -1,0 +1,321 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Global Eco-Route Planner - Landing</title>
+    <style>
+        body { 
+            margin: 0; 
+            overflow: hidden; 
+            font-family: Arial, sans-serif; 
+        }
+        /* Style for the container that holds the text overlay */
+        #info-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            color: white;
+            text-shadow: 0 0 5px rgba(0, 0, 0, 0.7);
+            z-index: 10;
+            background: rgba(0, 0, 0, 0.1); 
+            transition: background-color 0.5s; 
+        }
+        h1 { 
+            font-size: 3em; 
+            margin-bottom: 10px; 
+            transition: opacity 0.5s;
+        }
+        p { 
+            font-size: 1.2em; 
+            margin-bottom: 30px; 
+            transition: opacity 0.5s;
+        }
+        /* New styles for the search bar */
+        #search-container {
+            display: flex;
+            margin-bottom: 20px;
+            z-index: 11;
+            transition: opacity 0.5s;
+        }
+        #location-input {
+            padding: 10px;
+            font-size: 1em;
+            border: none;
+            border-radius: 5px 0 0 5px;
+            width: 300px;
+            color: #333;
+        }
+        #search-btn {
+            padding: 10px;
+            font-size: 1em;
+            background-color: #f39c12; /* A nice highlight color */
+            color: white;
+            border: none;
+            border-radius: 0 5px 5px 0;
+            cursor: pointer;
+            transition: background-color 0.3s;
+        }
+        #search-btn:hover {
+            background-color: #e67e22;
+        }
+        /* End of search styles */
+
+        .start-button {
+            padding: 15px 30px;
+            font-size: 1.2em;
+            background-color: #3498db;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            text-decoration: none;
+            margin: 5px; 
+            transition: background-color 0.3s, opacity 0.5s;
+        }
+        .start-button:hover { 
+            background-color: #2980b9; 
+        }
+    </style>
+</head>
+<body>
+    
+    <div id="info-overlay">
+        <h1>Global Eco-Route Planner</h1>
+        <p>Visualizing the true, global cost of your daily travel.</p>
+        
+        <div id="search-container">
+            <input type="text" id="location-input" placeholder="Search a city, country, or landmark..." autocomplete="off">
+            <button id="search-btn">Search & Zoom</button>
+        </div>
+
+        <button id="mode-toggle-btn" class="start-button">Switch to Dark Mode</button>
+        <button id="start-btn" class="start-button">Start Planning Your Green Route →</button>
+    </div>
+
+    <div id="globeViz"></div>
+
+    <script src="https://unpkg.com/globe.gl/dist/globe.gl.min.js"></script>
+
+    <script>
+        const CONTAINER = document.getElementById('globeViz');
+        
+        const THEMES = {
+            light: {
+                bg: '#FFFFFF',
+                globeImage: '//unpkg.com/three-globe/example/img/earth-day.jpg',
+                atmosphere: '#AAAAFF',
+                labelColor: 'rgba(0, 0, 0, 0.8)',
+                polygonCapColor: 'rgba(200, 200, 200, 0.2)',
+                buttonText: 'Switch to Dark Mode',
+                statusTextColor: 'black'
+            },
+            dark: {
+                bg: '#000000',
+                globeImage: '//unpkg.com/three-globe/example/img/earth-night.jpg',
+                atmosphere: '#88aaff',
+                labelColor: 'rgba(255, 255, 255, 0.7)',
+                polygonCapColor: 'rgba(255, 255, 255, 0.2)',
+                buttonText: 'Switch to Light Mode',
+                statusTextColor: 'yellow'
+            }
+        };
+
+        let currentMode = 'light';
+        let myGlobe; 
+
+        function toggleTheme() {
+            currentMode = (currentMode === 'light') ? 'dark' : 'light';
+            const theme = THEMES[currentMode];
+
+            myGlobe
+                .backgroundColor(theme.bg)
+                .globeImageUrl(theme.globeImage)
+                .atmosphereColor(theme.atmosphere)
+                .labelColor(() => theme.labelColor)
+                .polygonCapColor(() => theme.polygonCapColor);
+
+            document.getElementById('mode-toggle-btn').textContent = theme.buttonText;
+            document.getElementById('info-overlay').querySelector('p').style.color = theme.statusTextColor;
+        }
+
+        function hideOverlay() {
+            const overlay = document.getElementById('info-overlay');
+            
+            overlay.style.backgroundColor = 'transparent';
+            overlay.style.pointerEvents = 'none'; 
+            
+            overlay.querySelectorAll('h1, #start-btn, #mode-toggle-btn, #search-container').forEach(el => {
+                el.style.opacity = '0';
+            });
+            
+            updateSelectionStatus("Drag to find your location, then click for Origin.");
+        }
+        
+        async function searchLocation() {
+            const query = document.getElementById('location-input').value;
+            if (!query) return;
+
+            const url = `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(query)}&format=json&limit=1`;
+            
+            try {
+                updateSelectionStatus("Searching for location...");
+                const response = await fetch(url);
+                const data = await response.json();
+
+                if (data && data.length > 0) {
+                    const lat = parseFloat(data[0].lat);
+                    const lng = parseFloat(data[0].lon);
+                    
+                    myGlobe.pointOfView({ lat: lat, lng: lng, altitude: 2 }, 2000); 
+                    
+                    updateSelectionStatus(`Zoomed to: ${data[0].display_name}. Click to set Origin.`);
+
+                } else {
+                    updateSelectionStatus(`Location not found: "${query}". Try again.`);
+                }
+            } catch (error) {
+                console.error("Geocoding error:", error);
+                updateSelectionStatus("Error connecting to search service.");
+            }
+        }
+
+
+        setTimeout(() => {
+            const GlobeFactory = window.Globe;
+            if (typeof GlobeFactory !== 'function') {
+                document.getElementById('info-overlay').innerHTML = 
+                    '<h1>Final Error</h1><p>Library constructor not found. Please check network connection.</p>';
+                return;
+            }
+
+            const initialTheme = THEMES[currentMode];
+
+            myGlobe = GlobeFactory()
+                (CONTAINER)
+                .globeImageUrl(initialTheme.globeImage)
+                .bumpImageUrl('//unpkg.com/three-globe/example/img/earth-topology.png')
+                .backgroundImageUrl(null) 
+                .backgroundColor(initialTheme.bg) 
+                .showGlobe(true)
+                .showAtmosphere(true)
+                .atmosphereColor(initialTheme.atmosphere)
+                .atmosphereAltitude(0.2)
+                .height(window.innerHeight); 
+
+            fetch('//unpkg.com/world-atlas/countries-110m.json').then(res => res.json())
+                .then(countries => {
+                    myGlobe.polygonsData(countries.objects.countries.geometries)
+                        .polygonStrokeColor(() => '#555') 
+                        .polygonAltitude(0.005)
+                        .polygonCapColor(() => THEMES[currentMode].polygonCapColor)
+                        .labelsData(countries.objects.countries.geometries)
+                        .labelLat(d => d.properties.latitude)
+                        .labelLng(d => d.properties.longitude)
+                        .labelText(d => d.properties.name)
+                        .labelSize(0.6)
+                        .labelColor(() => THEMES[currentMode].labelColor)
+                        .labelDotRadius(0.3);
+                });
+            
+            let originPoint = null;
+            let destinationPoint = null;
+
+            // --- Button Event Listeners ---
+            document.getElementById('search-btn').addEventListener('click', searchLocation);
+            document.getElementById('location-input').addEventListener('keypress', function(e) {
+                if (e.key === 'Enter') {
+                    e.preventDefault();
+                    searchLocation();
+                }
+            });
+
+            document.getElementById('start-btn').addEventListener('click', () => {
+                hideOverlay();
+            });
+
+            document.getElementById('mode-toggle-btn').addEventListener('click', (e) => {
+                e.stopPropagation(); 
+                toggleTheme();
+            });
+            
+            // --- Click-to-Select Logic ---
+            myGlobe.onGlobeClick(({ lat, lng }, event) => {
+                const latLng = { lat, lng };
+
+                if (!originPoint) {
+                    originPoint = latLng;
+                    updateSelectionStatus("Origin set (Red Dot). Click again for Destination.");
+                } else if (!destinationPoint) {
+                    destinationPoint = latLng;
+                    updateSelectionStatus("Destination set (Red Dot). Calculating route...");
+                    mapRouteAndProceed(originPoint, destinationPoint);
+                } else {
+                    originPoint = latLng;
+                    destinationPoint = null;
+                    updateSelectionStatus("Selection cleared. New Origin set.");
+                    myGlobe.arcsData([]);
+                    myGlobe.pointsData([]); 
+                }
+                
+                const points = [];
+                if (originPoint) points.push({ lat: originPoint.lat, lng: originPoint.lng });
+                if (destinationPoint) points.push({ lat: destinationPoint.lat, lng: destinationPoint.lng });
+                
+                myGlobe.pointsData(points)
+                    .pointColor(() => 'red')
+                    .pointAltitude(0.01)
+                    .pointRadius(0.5);
+            });
+
+            // --- Handoff Function ---
+            function mapRouteAndProceed(origin, destination) {
+                updateSelectionStatus("Route found! Redirecting to calculator...");
+
+                const routeArc = [{ 
+                    startLat: origin.lat, 
+                    startLng: origin.lng, 
+                    endLat: destination.lat, 
+                    endLng: destination.lng, 
+                    color: 'yellow' 
+                }];
+                myGlobe.arcsData(routeArc)
+                    .arcDashAnimateTime(1000); 
+                
+                setTimeout(() => {
+                    const originStr = `${origin.lat.toFixed(4)},${origin.lng.toFixed(4)}`;
+                    const destStr = `${destination.lat.toFixed(4)},${destination.lng.toFixed(4)}`;
+                    
+                    window.location.href = `index.html?origin=${originStr}&destination=${destStr}`;
+                }, 1500);
+            }
+
+            // --- UI Update Function ---
+            function updateSelectionStatus(message) {
+                const overlay = document.getElementById('info-overlay');
+                const p = overlay.querySelector('p') || document.createElement('p');
+                p.textContent = message;
+
+                if (!overlay.contains(p)) overlay.appendChild(p);
+                
+                p.style.opacity = '1';
+                p.style.color = THEMES[currentMode].statusTextColor;
+            }
+            
+            // Handle resizing
+            window.addEventListener('resize', () => {
+                myGlobe.width = window.innerWidth;
+                myGlobe.height = window.innerHeight;
+            });
+            myGlobe.width(window.innerWidth).height(window.innerHeight);
+            
+        }, 500);
+    </script>
+</body>
+</html>
