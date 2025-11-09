@@ -94,3 +94,41 @@ button:hover {
 .impact-section {
     padding: 20px 0;
 }
+
+/* --- In your <style> block in index-globe.html --- */
+
+/* 1. Enhanced Light Mode Base Style */
+.route-data {
+    margin-bottom: 15px; 
+    padding: 15px; /* Increased padding */
+    border: 1px solid rgba(204, 204, 204, 0.4); /* Softer border */
+    background-color: rgba(255, 255, 255, 0.9); /* Slightly translucent white */
+    border-left: 5px solid #3498db; /* Thicker accent line */
+    border-radius: 8px; /* Rounded corners */
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05); /* Subtle shadow */
+    transition: all 0.5s;
+}
+
+/* New: Style for the Big Numbers/Results */
+.route-value {
+    font-size: 1.4em; /* Larger number */
+    font-weight: bold;
+    color: #2c3e50; /* Dark color for contrast */
+    display: block;
+    margin-top: 5px;
+}
+
+/* 2. Dark Mode Overrides */
+.dark-mode .route-data {
+    background-color: #2c2c2c !important; 
+    color: #f4f4f4 !important;
+    border: 1px solid #444 !important; 
+    /* Use a bright, contrasting color for the accent line */
+    border-left: 5px solid #8ab4f8 !important; 
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.4);
+}
+
+.dark-mode .route-value {
+    color: #8ab4f8 !important; /* Make the value color match the accent */
+}
+

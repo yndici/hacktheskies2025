@@ -3,17 +3,28 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Global Eco-Route Planner</title>
-    <style>
+    <title>Star Path</title>
+
+        <!-- Load single UMD Three.js first, then Globe UMD that uses the global THREE -->
+        <script src="https://unpkg.com/three@0.152.2/build/three.min.js"></script>
+        <script src="https://unpkg.com/globe.gl@2.45.0/dist/globe.gl.min.js"></script>
+
+        <style>
+        :root{
+            --primary-font: 'Inter', sans-serif;
+            /* Defining vibrant gradient colors */
+            --gradient-start: #1abc9c; /* Vibrant Teal */
+            --gradient-end: #8e44ad;   /* Vibrant Purple */
+        }
         body { 
             margin: 0; 
             overflow: hidden; 
-            font-family: Arial, sans-serif; 
-            display: flex;
-            /* Use a deep space color for better contrast without stars */
-            background-color: #00000A; 
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; 
+            background-color: transparent; 
+            transition: all 0.4s; /* Added transition for theme change */
         }
-        /* Style for the container that holds the text overlay/stats */
+
+        /* Info Overlay (Splash Screen) */
         #info-overlay {
             position: absolute;
             top: 0;
@@ -26,64 +37,389 @@
             align-items: center;
             color: white;
             text-shadow: 0 0 5px rgba(0, 0, 0, 0.7);
-            /* FIX 1: Set a high z-index to ensure buttons are clickable */
             z-index: 100; 
-            background: rgba(0, 0, 0, 0.1); 
+            background: transparent; 
             transition: background-color 0.5s; 
         }
-        /* --- RESULTS MODE STYLES (Sidebar) --- */
-        #sidebar {
-            width: 350px;
-            height: 100vh;
-            padding: 20px;
-            background-color: rgba(255, 255, 255, 0.95);
-            color: #333;
-            z-index: 20;
-            overflow-y: auto;
-            box-shadow: 2px 0 10px rgba(0, 0, 0, 0.2);
-            position: relative;
-        }
-        #sidebar h2 { margin-top: 0; border-bottom: 2px solid #3498db; padding-bottom: 5px; }
-        .route-data { margin-bottom: 15px; padding: 10px; border: 1px solid #ccc; background-color: #f9f9f9; border-left: 4px solid #3499db; }
-        .route-data p { margin: 5px 0; }
-
-        /* --- SPLASH MODE STYLES --- */
         #splash-container {
             display: flex;
             flex-direction: column;
             align-items: center;
             text-align: center;
         }
-        h1 { font-size: 3em; margin-bottom: 10px; }
+        /* --- H1 SPARKLING TITLE EFFECT --- */
+        h1 { 
+            font-size: 3.5em; 
+            margin-bottom: 25px; /* Increased margin for sparkle effect */
+            font-weight: 900;
+            letter-spacing: 2px;
+            position: relative; /* CRITICAL for the sparkle pseudo-element */
+            
+            /* Text Glow for Star Path */
+            color: #fff; 
+            text-shadow: 
+                0 0 5px rgba(255, 255, 255, 0.8), 
+                0 0 15px #bb8cf0, 
+                0 0 30px #a0b4ff;
+        }
+
         p { font-size: 1.2em; margin-bottom: 30px; }
-        #search-container { display: flex; margin-bottom: 20px; }
-        #location-input { padding: 10px; font-size: 1em; border: none; border-radius: 5px 0 0 5px; width: 300px; color: #333; }
-        #search-btn { padding: 10px; font-size: 1em; background-color: #f39c12; color: white; border: none; border-radius: 0 5px 5px 0; cursor: pointer; transition: background-color 0.3s; }
-        #search-btn:hover { background-color: #e67e22; }
+
+        #search-container {
+            display: flex;
+            gap:10px;
+            align-items: center;
+            margin-bottom: 20px;
+            width: 100%;
+            max-width: 720px;
+        }
+
+        #location-input {
+            flex: 1 1 auto;
+            padding: 12px 14px;
+            font-size: 1em;
+            border: 1px solid rgba(10,20,30,0.08);
+            border-radius: 10px;
+            color: #1f2937;
+            box-shadow: 0 4px 12px rgba(16,24,40,0.04);
+            outline: none;
+            transition: box-shadow 140ms ease, border-color 140ms ease, transform 140ms ease;
+            width: 100%;
+        }
+
+        #location-input::placeholder { color: #9aa4ad; }
+        #location-input:focus {
+            border-color: #3498db;
+            box-shadow: 0 12px 30px rgba(52,152,219,0.12);
+            transform: translateY(-1px);
+        }
+
+        #search-btn {
+            flex: 0 0 auto;
+            padding: 10px 14px;
+            font-size: 1rem;
+            font-weight: 700;
+            border-radius: 10px;
+            background: linear-gradient(180deg, #bb8cf0 0%, #a0b4ff 100%);
+            color: #000;
+            border: none;
+            cursor: pointer;
+            box-shadow: 0 10px 26px rgba(243,156,18,0.16);
+            transition: transform 120ms ease, box-shadow 120ms ease, opacity 120ms ease;
+        }
+        #search-btn:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 16px 36px rgba(243,156,18,0.20);
+        }
+        #search-btn:active {
+            transform: translateY(0);
+            box-shadow: 0 6px 14px rgba(0,0,0,0.10);
+        }
+        #search-btn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none;
+            box-shadow: none;
+        }
+
+        @media (max-width: 720px) {
+            #search-container { flex-direction: column; align-items: stretch; gap: 8px; }
+            #search-btn { width: 100%; }
+            #location-input { width: 100%; }
+        }
 
         .start-button {
-            padding: 15px 30px;
-            font-size: 1.2em;
-            background-color: #3498db;
-            color: white;
+            padding: 12px 22px;
+            font-size: 1rem;
+            font-weight: 700;
+            background: linear-gradient(180deg, #ddc424 0%, #f39c12 100%);
+            color: #fff;
             border: none;
-            border-radius: 8px;
+            border-radius: 12px;
             cursor: pointer;
-            text-decoration: none;
-            margin: 5px; 
-            transition: background-color 0.3s, opacity 0.5s;
+            margin: 6px;
+            box-shadow: 0 12px 30px rgba(34,118,210,0.16);
+            transition: transform 140ms ease, box-shadow 140ms ease, opacity 140ms ease;
         }
-        .start-button:hover { background-color: #2980b9; }
+        .start-button:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 18px 40px rgba(34,118,210,0.20);
+        }
+        .start-button:active {
+            transform: translateY(0);
+            box-shadow: 0 6px 14px rgba(0,0,0,0.12);
+        }
+        .start-button:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none;
+            box-shadow: none;
+        }
 
+        /* Secondary / small toggle */
+        #mode-toggle-btn {
+            padding: 10px 14px;
+            font-size: 0.95rem;
+            border-radius: 10px;
+            border: 1px solid rgba(0,0,0,0.06);
+            background: rgba(255,255,255,0.92);
+            color: #223;
+            box-shadow: 0 6px 16px rgba(16,24,40,0.04);
+            margin-left: 8px;
+        }
+        #mode-toggle-btn:hover { transform: translateY(-2px); }
+        
         .hidden { display: none !important; }
 
-        /* Ensure globeViz takes up full available space */
+        /* Sidebar fixed (hidden by default via .hidden). When shown it overlays left */
+        #sidebar {
+            width: 350px;
+            height: 100vh;
+            padding: 20px;
+            z-index: 40;
+            overflow-y: auto;
+            box-shadow: 2px 0 10px rgba(0, 0, 0, 0.2);
+            position: fixed;
+            left: 0;
+            top: 0;
+            background-color: rgba(255, 255, 255, 0.95); /* Light Mode Background */
+            color: #333;
+            transition: transform 0.32s ease, opacity 0.32s ease;
+            transform: translateX(-100%); /* hide off-screen by default */
+        }
+        /* when visible, sidebar slides in */
+        #sidebar:not(.hidden) { transform: translateX(0); }
+
         #globeViz {
-            flex-grow: 1;
-            position: relative;
+            position: fixed;
+            left: 0;
+            top: 0;
             z-index: 5;
             width: 100%;
             height: 100vh;
+            transition: left 0.32s ease, width 0.32s ease;
+        }
+
+        .sidebar-open #globeViz {
+            left: 350px;
+            width: calc(100% - 350px);
+        }
+
+        #stars-bg{
+            position:fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            object-fit:cover;
+            z-index: 0;
+            pointer-events: none;
+            transition: opacity 0.4s ease;
+            opacity: 0.4;
+            background-color: #000;
+        }
+
+        /* Journey Visualization*/
+
+        #sidebar {
+            width: 350px;
+            height: 100vh;
+            padding: 20px;
+            z-index: 20;
+            overflow-y: auto;
+            box-shadow: 2px 0 10px rgba(0, 0, 0, 0.2);
+            position: relative;
+            background-color: rgba(255, 255, 255, 0.95); /* Light Mode Background */
+            color: #333;
+            transition: all 0.4s;
+        }
+
+        #sidebar h2 { 
+            margin-top: 0; 
+            padding-bottom: 5px;
+            color: #2c3e50;
+            position: relative;
+    
+        }
+        #sidebar h2::after {
+        content: '';
+        position: absolute; 
+        bottom: 0; 
+        left: 0;
+        width: 100%;
+        height: 5px; 
+        background-image: linear-gradient(to right, #8ab4f8, #f4b4b4);
+    }
+
+        /* Data Boxes */
+        .route-data { 
+            margin-bottom: 15px; 
+            padding: 15px; 
+            border: 1px solid rgba(204, 204, 204, 0.4); 
+            background-color: #f9f9f9; 
+            border-left: 5px solid #8ab4f8; /* Accent line */
+            border-radius: 8px; 
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05); 
+            transition: all 0.4s;
+        }
+
+        /* Data Values */
+        .route-value {
+            font-size: 1.4em; 
+            font-weight: bold;
+            color: #2c3e50; 
+            display: block;
+            margin-top: 5px;
+        }
+        
+        .dark-mode body {
+            background-color: #121212 !important; 
+            color: #f4f4f4 !important;
+        }
+
+
+        .dark-mode #sidebar {
+            background-color: #1e1e1e !important; 
+            color: #f4f4f4 !important;
+            box-shadow: 2px 0 10px rgba(0, 0, 0, 0.7); 
+        }
+
+        .dark-mode #sidebar h2 {
+            color: #f4f4f4 !important;
+            border-bottom-color: #8ab4f8;
+        }
+
+        /* Data Boxes Dark Mode */
+        .dark-mode .route-data {
+            background-color: #2c2c2c !important; 
+            color: #f4f4f4 !important;
+            border: 1px solid #444 !important; 
+            border-left: 5px solid #8ab4f8 !important; 
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.4);
+        }
+
+        .dark-mode .route-value {
+            color: #8ab4f8 !important; 
+        }
+
+        /* Dark Mode Button and Input cleanup */
+        .dark-mode #search-btn:hover { background-color: #8ab4f8 !important; }
+        .dark-mode #location-input { background-color: #333 !important; color: #f4f4f4 !important; }
+        
+        /* --- GLOBBIE JR. MASCOT WIDGET STYLES --- */
+        #globbie-widget {
+            position: fixed; /* Makes it independent */
+            bottom: 20px; 
+            right: 20px; 
+            width: 200px; 
+            height: 200px;
+            border-radius: 50%;
+            cursor: pointer;
+            z-index: 100005; /* Ensures it overlays everything */
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            
+            transition: transform 0.2s, box-shadow 0.2s;
+            overflow: hidden; 
+            
+            /* Floating Animation */
+            animation: float 4s ease-in-out infinite; 
+        }
+
+        #globbie-widget:hover {
+            transform: scale(1.1); 
+        }
+
+        #globbie-widget img {
+            width: 100%;
+            height: 100%;
+            object-fit: contain;
+            padding: 5px; 
+        }
+
+        /* Keyframe Animation for a Bobbing/Floating Effect */
+        @keyframes float {
+            0% {
+                transform: translateY(0);
+            }
+            50% {
+                transform: translateY(-8px); /* Moves up 8 pixels */
+            }
+            100% {
+                transform: translateY(0);
+            }
+        }
+
+        /* Keyframe Animation for Click Interaction */
+        @keyframes bounce {
+            0%, 100% {
+                transform: translateY(0);
+            }
+            50% {
+                transform: translateY(-15px); /* Jump up higher */
+            }
+        }
+
+        .bouncing {
+            /* Temporarily override the float animation with a bounce */
+            animation: bounce 0.5s ease-out !important; 
+        }
+
+        /* --- GLOBBIE JR. MESSAGE BUBBLE STYLES --- */
+        #globbie-message-box {
+            position: fixed;
+            bottom: 90px; 
+            right: 105px; 
+            padding: 10px 15px;
+            width: auto; 
+            max-width: 300px;
+            background-color: #f8f8f8; 
+            color: #333; /* Default text color (Light Mode) */
+            border: 1px solid #ddd; 
+            border-radius: 10px;
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);
+            font-size: 0.9em;
+
+            opacity: 0; 
+            visibility: hidden;
+            pointer-events: none; 
+            transition: opacity 0.3s, transform 0.3s, visibility 0.3s;
+            transform: translateY(10px); 
+            z-index: 100021; 
+        }
+
+        /* CLASS APPLIED BY JAVASCRIPT TO MAKE IT VISIBLE */
+        .globbie-message-bubble.visible {
+            opacity: 1;
+            visibility: visible;
+            transform: translateY(0);
+            pointer-events: auto; /* Re-enable interaction when visible */
+        }
+
+        /* Arrow/Tail for the Speech Bubble (Points toward the mascot) */
+        #globbie-message-box::after {
+            content: "";
+            position: absolute;
+            top: 50%;
+            right: -10px; 
+            transform: translateY(-50%);
+            border-width: 10px 0 10px 10px; 
+            border-style: solid;
+            border-color: transparent transparent transparent #f8f8f8; 
+        }
+
+        .dark-mode #globbie-message-box {
+            background-color: #333; 
+            color: #f4f4f4; 
+            border-color: #555;
+        }
+        .dark-mode #globbie-message-box p#globbieMessage {
+            color: #f4f4f4 !important; 
+        }
+
+        .dark-mode #globbie-message-box::after {
+            border-color: transparent transparent transparent #333;
         }
     </style>
 </head>
@@ -122,52 +458,108 @@
             <h4>Eco Score (Relative) 🌿</h4>
             <p id="stat-score">Score: Evaluating...</p>
         </div>
+        
+        <div class="route-data">
+            <h4>Equivalents</h4>
+            <p id="stat-equivalents">—</p>
+        </div>
 
-        <p style="font-size: 0.9em; margin-top: 20px;">*The animated arc shows your planned journey.</p>
+        <div class="route-data">
+            <h4>Offset & Non‑CO₂</h4>
+            <p id="stat-offset">—</p>
+            <p id="stat-nonco2">—</p>
+        </div>
+
+        <div class="route-data">
+            <h4>Mode & Occupancy</h4>
+            <label for="mode-select" style="display:block; font-size:0.95em; margin-bottom:6px;">Transport mode</label>
+            <select id="mode-select" style="width:100%;padding:8px;border-radius:6px;margin-bottom:8px;">
+                <option value="flight_short">Flight — Short haul (&lt;1500km)</option>
+                <option value="flight_long">Flight — Long haul (&gt;=1500km)</option>
+                <option value="train">Train</option>
+                <option value="car">Car</option>
+                <option value="bus">Bus / Coach</option>
+            </select>
+
+            <label for="vehicle-type-select" style="display:block; font-size:0.95em; margin-bottom:6px;">Vehicle / Car type</label>
+            <select id="vehicle-type-select" style="width:100%;padding:8px;border-radius:6px;margin-bottom:8px;">
+                <option value="car_medium">Car — Medium </option>
+                <option value="car_small">Car — Small </option>
+                <option value="car_suv">Car — SUV </option>
+                <option value="bus_standard">Coach / Bus</option>
+                <option value="train_standard">Train</option>
+            </select>
+
+            <label style="display:block; font-size:0.95em; margin-bottom:6px;">Passengers (occupancy)</label>
+            <input id="occupancy" type="number" min="1" value="1" style="width:80px;padding:8px;border-radius:6px;border:1px solid #ddd;margin-bottom:8px;">
+
+            <label for="flight-class-select" style="display:block; font-size:0.95em; margin-bottom:6px;">Flight class (when applicable)</label>
+            <select id="flight-class-select" style="width:100%;padding:8px;border-radius:6px;margin-bottom:6px;">
+                <option value="economy">Economy</option>
+                <option value="premium">Premium Economy</option>
+                <option value="business">Business</option>
+                <option value="first">First</option>
+            </select>
+        </div>
+
+        </div>
+
+        <p style="font-size: 0.9em; margin-top: 20px;">*The red arc shows your planned journey.</p>
     </div>
 
+    <img id="stars-bg" src="stars.png" alt="" aria-hidden="true">
     <div id="globeViz"></div>
+
+    <div id="globbie-widget" title="Globbie Jr. - Click for Insight">
+        <img src="globbie.png" alt="Globbie Jr. Mascot" style="width: 100%; height: 100%; object-fit: contain;">
+    </div>
+
+    <div id="globbie-message-box" class="globbie-message-bubble">
+        <p id="globbieMessage"></p>
+    </div>
+
     
     <div id="info-overlay">
         <div id="splash-container">
-            <h1>Global Eco-Route Planner</h1>
+            <h1>Globbie</h1>
             <p>Visualizing the true, global cost of your daily travel.</p>
             
             <div id="search-container">
                 <input type="text" id="location-input" placeholder="Search a city, country, or landmark..." autocomplete="off">
-                <button id="search-btn">Search & Zoom</button>
+                <button id="search-btn">Search</button>
             </div>
 
-            <button id="mode-toggle-btn" class="start-button">Switch to Dark Mode</button>
+            <button id="mode-toggle-btn" class="start-button" disabled>☀️ Switch to Light Mode</button>
             <button id="start-btn" class="start-button">Start Planning Your Green Route →</button>
         </div>
     </div>
-
-    <script src="https://unpkg.com/globe.gl/dist/globe.gl.min.js"></script>
+    
 
     <script>
         const CONTAINER = document.getElementById('globeViz');
         const THEMES = {
-            light: { bg: '#FFFFFF', globeImage: '//unpkg.com/three-globe/example/img/earth-day.jpg', atmosphere: '#AAAAFF', labelColor: 'rgba(0, 0, 0, 0.8)', polygonCapColor: 'rgba(200, 200, 200, 0.2)', buttonText: 'Switch to Dark Mode', statusTextColor: 'black' },
-            dark: { bg: '#000000', globeImage: '//unpkg.com/three-globe/example/img/earth-night.jpg', atmosphere: '#88aaff', labelColor: 'rgba(255, 255, 255, 0.7)', polygonCapColor: 'rgba(255, 255, 255, 0.2)', buttonText: 'Switch to Light Mode', statusTextColor: 'yellow' }
+            light: { bg: '#0b1220', globeImage: '//unpkg.com/three-globe/example/img/earth-day.jpg', atmosphere: '#AAAAFF', labelColor: 'rgba(0, 0, 0, 0.8)', polygonCapColor: 'rgba(200, 200, 200, 0.2)', buttonText: '🌙 Switch to Dark Mode', statusTextColor: 'black' },
+            dark: { globeImage: '//unpkg.com/three-globe/example/img/earth-night.jpg', atmosphere: '#E0E8FF', labelColor: 'rgba(255, 255, 255, 0.92)', polygonCapColor: 'rgba(255,255,255,1.0)', buttonText: '☀️ Switch to Light Mode', statusTextColor: 'yellow' }
         };
 
-        // FIX 2: Set initial mode to 'dark' for the space background you chose in CSS
         let currentMode = 'dark'; 
         let myGlobe; 
-        let animationFrameId = null; // Used for the spinning fix
-        let countryData = null;
+        let animationFrameId = null; 
+        let countryData = null; 
 
-        // FIX 3: Globe Spinning Function
         function animateGlobe() {
             if (myGlobe) { 
-                // Rotate the globe slowly
-                myGlobe.rotation({ 
-                    x: myGlobe.rotation().x, 
-                    y: myGlobe.rotation().y + 0.0005, 
-                    z: myGlobe.rotation().z 
-                }); 
-                animationFrameId = requestAnimationFrame(animateGlobe);
+                if (!myGlobe.rotation || !Array.isArray(myGlobe.rotation) || myGlobe.rotation.length !== 3) {
+                    myGlobe.rotation = [0, 0, 0];
+                }
+
+                myGlobe.rotation = [
+                    myGlobe.rotation[0],
+                    myGlobe.rotation[1] + 0.0005, // Spin speed
+                    myGlobe.rotation[2]
+                ]; 
+                
+                animationFrameId=requestAnimationFrame(animateGlobe);
             }
         }
         
@@ -179,11 +571,15 @@
                 .backgroundColor(theme.bg)
                 .globeImageUrl(theme.globeImage)
                 .atmosphereColor(theme.atmosphere)
-                .labelColor(() => theme.labelColor)
                 .polygonsData(countryData) 
-                .polygonCapColor(() => theme.polygonCapColor);
+                .polygonCapColor(() => theme.polygonCapColor)
+                .labelsData(countryData)
+                .labelColor(() => theme.labelColor);
 
             document.getElementById('mode-toggle-btn').textContent = theme.buttonText;
+            document.body.classList.toggle('dark-mode'); // Toggles dark-mode class on body
+             // toggle stars background when switching themes
+            try { document.getElementById('stars-bg').style.opacity = (currentMode === 'dark') ? '1' : '0'; } catch (e) {}
         }
 
         async function searchLocation() {
@@ -200,7 +596,6 @@
                     const lat = parseFloat(data[0].lat);
                     const lng = parseFloat(data[0].lon);
                     
-                    // Zoom the camera to the found location
                     myGlobe.pointOfView({ lat: lat, lng: lng, altitude: 2.5 }, 2000); 
                     
                 } else {
@@ -233,6 +628,185 @@
             return R * c;
         }
 
+        function estimateCO2e(distanceKm, opts = {}) {
+            const { flightClass = 'economy', includeRadiativeForcing = true, passengers = 1 } = opts;
+
+            // Base per-passenger-km CO₂ (kg per p-km), rough typical values by sector:
+            // short (<1500 km) less efficient per km; long-haul more efficient per km
+            let intensity; // kg CO2 per passenger-km
+            if (distanceKm < 1500) intensity = 0.255;
+            else if (distanceKm < 4000) intensity = 0.150;
+            else intensity = 0.110;
+
+            // seat-class multipliers (economy baseline = 1)
+            const classMultipliers = {
+                economy: 1.0,
+                premium: 1.6,
+                business: 2.7,
+                first: 3.5
+            };
+            const classMul = classMultipliers[flightClass] || 1.0;
+
+            // Radiative forcing index (non-CO2 effects). Typical multiplier ~1.9 (useable as default)
+            const rfi = includeRadiativeForcing ? 1.9 : 1.0;
+
+            // per-passenger emissions (kg)
+            const kg = intensity * distanceKm * classMul * rfi;
+
+            return {
+                kg: kg / (passengers || 1), // per passenger
+                intensityKgPerPkm: intensity * classMul * rfi
+            };
+        }
+
+        function computeEcoScore(kgCO2e, distanceKm) {
+            if (!distanceKm || distanceKm <= 0) return 0;
+            const intensity = kgCO2e / distanceKm; // kg per p-km
+
+            // Map intensity 0.05..0.35 kg/pkm to score 100..0
+            const minI = 0.05;
+            const maxI = 0.35;
+            let frac = (intensity - minI) / (maxI - minI);
+            frac = Math.max(0, Math.min(1, frac));
+            const score = Math.round((1 - frac) * 100);
+            return score;
+        }
+
+        function computeJourneyAnalytics(distanceKm, perPassengerKg, passengers = 1, rfi = 1.9) {
+            const totalKg = perPassengerKg * (passengers || 1); // total for trip (all passengers)
+
+            // If perPassengerKg includes RFI (as our estimateCO2e default does),
+            // CO2-only = total / rfi, non-CO2 = total - CO2-only
+            const co2OnlyKg = totalKg / rfi;
+            const nonCO2Kg = Math.max(0, totalKg - co2OnlyKg);
+
+            // Equivalents (typical approximations)
+            const carKgPerKm = 0.192; // kg CO2 per km for average car (~192 g/km)
+            const kghPerKwh = 0.475; // kg CO2 per kWh (grid-average placeholder)
+            const kgPerLiterFuel = 2.5; // approx kg CO2 per liter jet fuel
+            const treeSequestrationPerYearKg = 21; // kg CO2 sequestered per tree per year (approx)
+
+            const carKmEquivalent = totalKg / carKgPerKm; // km driven by car
+            const kWhEquivalent = totalKg / kghPerKwh; // kWh of household electricity
+            const fuelLitres = totalKg / kgPerLiterFuel; // liters of jet fuel equivalent
+            const treeYears = totalKg / treeSequestrationPerYearKg; // tree-years required
+            const treesNeeded = totalKg / treeSequestrationPerYearKg;
+            const treesFor10Years = totalKg / (treeSequestrationPerYearKg * 10);
+            return {
+                distanceKm,
+                perPassengerKg,
+                passengers,
+                totalKg,
+                co2OnlyKg,
+                nonCO2Kg,
+                carKmEquivalent,
+                kWhEquivalent,
+                fuelLitres,
+                treeYears,
+                treesNeeded,
+                treesFor10Years
+            };
+        }
+
+        function formatEquivalentsHTML(a) {
+            return `≈ ${Math.round(a.carKmEquivalent).toLocaleString()} km driven by average car<br>`
+                 + `≈ ${Math.round(a.kWhEquivalent).toLocaleString()} kWh (household energy)<br>`
+                 + `≈ ${a.fuelLitres.toFixed(1)} L jet fuel`;
+        }
+
+        /* ----------------- MODE / OCCUPANCY ESTIMATOR ----------------- */
+        // returns { perPassengerKg, totalKg, label }
+        function estimateByMode(distanceKm, mode, opts = {}) {
+            const passengers = Math.max(1, parseInt(opts.occupancy || 1, 10));
+            const flightClass = opts.flightClass || 'economy';
+            const rfi = parseFloat(opts.rfi || 1.9);
+
+            // Flight uses existing estimateCO2e but we'll compute base-without-RFI then apply rfi
+            if (mode === 'flight_short' || mode === 'flight_long' || mode === 'flight_auto') {
+                // choose short/long threshold consistent with estimateCO2e
+                const includeRfiInEstimate = false;
+                const base = estimateCO2e(distanceKm, { flightClass, includeRadiativeForcing: includeRfiInEstimate, passengers: 1 }).kg;
+                const perPassengerWithRfi = base * rfi;
+                return { perPassengerKg: perPassengerWithRfi, totalKg: perPassengerWithRfi * passengers, label: `Flight (${flightClass})` };
+            }
+
+            // Train: use average per-passenger intensity (kg per p-km)
+            if (mode === 'train') {
+                const trainPpkm = 0.041; // kg CO2 per passenger-km (placeholder average)
+                const perPassengerKg = trainPpkm * distanceKm;
+                return { perPassengerKg, totalKg: perPassengerKg * passengers, label: 'Train' };
+            }
+
+            if (mode === 'bus') {
+                const busPpkm = 0.05; // kg CO2 per passenger-km (avg coach)
+                const perPassengerKg = busPpkm * distanceKm;
+                return { perPassengerKg, totalKg: perPassengerKg * passengers, label: 'Bus / Coach' };
+            }
+
+            // Car: choose vehicle fuel intensity per vehicle-km then divide by occupancy
+            if (mode === 'car') {
+                const vehicleType = opts.vehicleType || 'car_medium';
+                const vehicleKgPerKmMap = {
+                    car_small: 0.12,
+                    car_medium: 0.192,
+                    car_suv: 0.25,
+                    bus_standard: 1.8,
+                    train_standard: 2.0
+                };
+                const vehicleKgPerKm = vehicleKgPerKmMap[vehicleType] || vehicleKgPerKmMap.car_medium;
+                const totalVehicleKg = vehicleKgPerKm * distanceKm;
+                const perPassengerKg = totalVehicleKg / Math.max(1, passengers);
+                return { perPassengerKg, totalKg: totalVehicleKg, label: `Car (${vehicleType.replace('car_','')})` };
+            }
+
+            // fallback: treat as train
+            const fallbackPpkm = 0.05;
+            const perPassengerKg = fallbackPpkm * distanceKm;
+            return { perPassengerKg, totalKg: perPassengerKg * passengers, label: mode };
+        }
+
+        // call this to re-run analytics display given a distance (used in visualization mode)
+        function recalcAndRender(distanceKm) {
+            if (!distanceKm || distanceKm <= 0) return;
+            // read UI
+            const mode = (document.getElementById('mode-select') || {}).value || 'flight_long';
+            const vehicleType = (document.getElementById('vehicle-type-select') || {}).value || 'car_medium';
+            const occupancy = parseInt((document.getElementById('occupancy') || {}).value || '1', 10);
+            const flightClass = (document.getElementById('flight-class-select') || {}).value || 'economy';
+            // use any RFI control if present, otherwise default 1.9
+            const rfiEl = document.getElementById('rfi-range');
+            const rfi = rfiEl ? parseFloat(rfiEl.value) : 1.9;
+
+            const est = estimateByMode(distanceKm, mode, { occupancy, vehicleType, flightClass, rfi });
+            // per-passenger emissions shown
+            const perKg = est.perPassengerKg;
+            const totalKg = est.totalKg;
+
+            document.getElementById('stat-carbon').textContent = `CO₂e: ${perKg.toFixed(1)} kg per passenger`;
+            const eco = computeEcoScore(perKg, distanceKm);
+            document.getElementById('stat-score').textContent = `Score: ${eco} / 100`;
+
+            // recompute analytics and render equivalents / offsets
+            const analytics = computeJourneyAnalytics(distanceKm, perKg, Math.max(1, occupancy), rfi);
+            const eqEl = document.getElementById('stat-equivalents');
+            const offEl = document.getElementById('stat-offset');
+            const nonEl = document.getElementById('stat-nonco2');
+            if (eqEl) eqEl.innerHTML = formatEquivalentsHTML(analytics) + `<br><small>Mode: ${est.label}</small>`;
+            if (offEl) offEl.textContent = `${Math.round(analytics.treesNeeded).toLocaleString()} trees needed — for ${analytics.passengers} passenger(s)`;
+            if (nonEl) nonEl.textContent = `Non‑CO₂ share: ${analytics.nonCO2Kg.toFixed(1)} kg (${((analytics.nonCO2Kg/analytics.totalKg)*100).toFixed(0)}%)`;
+        }
+
+        /* Wire small mode/occupancy UI (called when sidebar shown in visualization mode) */
+        function wireModeControls(distanceKm) {
+            const ids = ['mode-select', 'vehicle-type-select', 'occupancy', 'flight-class-select', 'rfi-range'];
+            ids.forEach(id => {
+                const el = document.getElementById(id);
+                if (!el) return;
+                el.addEventListener('input', () => recalcAndRender(distanceKm));
+                el.addEventListener('change', () => recalcAndRender(distanceKm));
+            });
+        }
+
         function handleVisualization() {
             const params = getUrlParams();
             const isVisualizationMode = params.s_lon && params.e_lon;
@@ -240,7 +814,6 @@
             const sidebar = document.getElementById('sidebar');
             const overlay = document.getElementById('info-overlay');
             
-            // 1. Initialize Globe
             const GlobeFactory = window.Globe;
             if (typeof GlobeFactory !== 'function') {
                  overlay.innerHTML = '<h1>Error</h1><p>Globe library not found. Check network connection.</p>';
@@ -250,102 +823,200 @@
             const initialWidth = isVisualizationMode ? window.innerWidth - 350 : window.innerWidth;
             const initialTheme = THEMES[currentMode];
 
+            // 1. Initialize Globe (Base Config Only)
             myGlobe = GlobeFactory()(CONTAINER)
                 .globeImageUrl(initialTheme.globeImage)
                 .bumpImageUrl('//unpkg.com/three-globe/example/img/earth-topology.png')
                 .backgroundColor(initialTheme.bg) 
                 .showAtmosphere(true)
                 .atmosphereColor(initialTheme.atmosphere)
-                .atmosphereAltitude(0.2)
+                .atmosphereAltitude(0.25)
                 .width(initialWidth)
                 .height(window.innerHeight); 
-                // Removed .showGraticules(false) and .starsData() to fix the TypeError
 
-            // Load country data
+                // make globe renderer transparent so stars.png shows through
+            try {
+                if (typeof myGlobe.renderer === 'function') {
+                    const renderer = myGlobe.renderer();
+                    if (renderer && typeof renderer.setClearColor === 'function') {
+                        renderer.setClearColor(0x000000, 0); // alpha = 0 => transparent
+                    }
+                }
+                // also ensure the canvas background is transparent as a fallback
+                const tryMakeCanvasTransparent = () => {
+                    const canvas = CONTAINER.querySelector('canvas');
+                    if (canvas) {
+                        canvas.style.background = 'transparent';
+                        canvas.style.display = 'block';
+                    }
+                };
+                tryMakeCanvasTransparent();
+                // sometimes renderer/canvas appear a moment later, retry once
+                setTimeout(tryMakeCanvasTransparent, 250);
+            } catch (e) { console.warn('Could not set renderer transparency:', e); }
+
+            // ensure stars image visibility matches current theme
+            try {
+                const stars = document.getElementById('stars-bg');
+                if (stars) stars.style.opacity = (currentMode === 'dark') ? '1' : '0';
+            } catch (e) {}
+
             fetch('//unpkg.com/world-atlas/countries-110m.json').then(res => res.json())
                 .then(countries => {
                     countryData = countries.objects.countries.geometries;
-                    myGlobe.polygonsData(countries.objects.countries.geometries)
+
+                    myGlobe.polygonsData(countryData)
                         .polygonStrokeColor(() => '#555') 
                         .polygonAltitude(0.005)
                         .polygonCapColor(() => initialTheme.polygonCapColor)
-                        .labelsData(countries.objects.countries.geometries)
+                        .labelsData(countryData)
                         .labelColor(() => initialTheme.labelColor);
+
+                    document.getElementById('search-btn').addEventListener('click', searchLocation);
+                    document.getElementById('location-input').addEventListener('keypress', function(e) {
+                        if (e.key === 'Enter') {
+                            e.preventDefault();
+                            searchLocation();
+                        }
+                    });
+                    document.getElementById('mode-toggle-btn').addEventListener('click', toggleTheme);
+                    document.getElementById('mode-toggle-btn').disabled = false; // Enable the toggle button
+
+                    if (isVisualizationMode) {
+                        if (animationFrameId) cancelAnimationFrame(animationFrameId);
+                        overlay.classList.add('hidden');
+                        sidebar.classList.remove('hidden');
+                        document.body.classList.add('sidebar-open');
+
+                        const { s_lon, s_lat, e_lon, e_lat } = params;
+
+                        myGlobe.pointOfView({ lat: (s_lat + e_lat) / 2, lng: (s_lon + e_lon) / 2, altitude: 2.5 }, 3000); 
+
+                        const routeArc = [{ 
+                            startLat: s_lat, startLng: s_lon, 
+                            endLat: e_lat, endLng: e_lon
+                        }];
+                        myGlobe.arcsData(routeArc)
+                            .arcColor(() => 'red')
+                            .arcStroke(2)
+                            .arcDashAnimateTime(2000)
+                            .arcDashLength(0.5);
+
+                        const points = [
+                            { lat: s_lat, lng: s_lon, color: 'blue', label: 'Origin' },
+                            { lat: e_lat, lng: e_lon, color: 'green', label: 'Destination' }
+                        ];
+                        myGlobe.pointsData(points)
+                            .pointColor(d => d.color)
+                            .pointAltitude(0.015)
+                            .pointRadius(0.8);
+
+                        // 1. Calculate Distance
+                        const distanceKm = calculateDistance(s_lat, s_lon, e_lat, e_lon);
+                        const distanceMiles = distanceKm * 0.621371;
+                        
+                        // 2. Estimate Time (Assuming average commercial jet speed of 900 km/h)
+                        const speedKmh = 900;
+                        const timeHours = distanceKm / speedKmh;
+                        const timeMinutes = Math.round(timeHours * 60);
+
+                        // 3. Update the Sidebar Elements
+                        document.getElementById('stat-start').textContent = `Lat: ${s_lat.toFixed(4)}, Lon: ${s_lon.toFixed(4)}`;
+                        document.getElementById('stat-end').textContent = `Lat: ${e_lat.toFixed(4)}, Lon: ${e_lon.toFixed(4)}`;
+                        document.getElementById('stat-distance').textContent = `Distance: ${distanceKm.toFixed(0)} km (${distanceMiles.toFixed(0)} miles)`;
+                        
+                        // Basic Time Display Logic
+                        let timeDisplay;
+                        if (timeMinutes > 60) {
+                            const h = Math.floor(timeMinutes / 60);
+                            const m = timeMinutes % 60;
+                            timeDisplay = `${h} hr ${m} min`;
+                        } else {
+                            timeDisplay = `${timeMinutes} min`;
+                        }
+                        document.getElementById('stat-time').textContent = `Est. Flight Time: ${timeDisplay}`;
+                        
+                        // store last distance for live updates
+                        window._lastDistanceKm = distanceKm;
+                        recalcAndRender(distanceKm);
+                        wireModeControls(distanceKm);
+                        
+                    } else {
+                        // --- SPLASH SCREEN MODE ---
+                        sidebar.classList.add('hidden');
+                        overlay.classList.remove('hidden');
+                        document.body.classList.remove('sidebar-open');
+
+                        document.getElementById('start-btn').addEventListener('click', () => {
+                            window.location.href = `2d-map.html?mode=${currentMode}`;
+                        });
+                        
+                        animateGlobe(); // START SPINNING HERE, AFTER DATA IS READY
+                    }
+                })
+                .catch(error => {
+                    console.error("Critical: Failed to load map data.", error);
+                    // Enable the button anyway in case of failure to prevent UI lockup
+                    document.getElementById('mode-toggle-btn').disabled = false; 
                 });
 
-            // Set up common event listeners (Splash Mode / Search)
-            document.getElementById('search-btn').addEventListener('click', searchLocation);
-            document.getElementById('location-input').addEventListener('keypress', function(e) {
-                if (e.key === 'Enter') {
-                    e.preventDefault();
-                    searchLocation();
-                }
-            });
-            document.getElementById('mode-toggle-btn').addEventListener('click', toggleTheme);
-
-            if (isVisualizationMode) {
-                // --- VISUALIZATION MODE ---
-                if (animationFrameId) cancelAnimationFrame(animationFrameId); // Stop spinning on results page
-                overlay.classList.add('hidden');
-                sidebar.classList.remove('hidden');
-
-                const { s_lon, s_lat, e_lon, e_lat } = params;
-
-                myGlobe.pointOfView({ lat: (s_lat + e_lat) / 2, lng: (s_lon + e_lon) / 2, altitude: 2.5 }, 3000); 
-
-                const routeArc = [{ 
-                    startLat: s_lat, startLng: s_lon, 
-                    endLat: e_lat, endLng: e_lon
-                }];
-                myGlobe.arcsData(routeArc)
-                    .arcColor(() => 'red')
-                    .arcStroke(2)
-                    .arcDashAnimateTime(2000)
-                    .arcDashLength(0.5);
-
-                const points = [
-                    { lat: s_lat, lng: s_lon, color: 'blue', label: 'Origin' },
-                    { lat: e_lat, lng: e_lon, color: 'green', label: 'Destination' }
-                ];
-                myGlobe.pointsData(points)
-                    .pointColor(d => d.color)
-                    .pointAltitude(0.015)
-                    .pointRadius(0.8);
-
-                document.getElementById('stat-start').textContent = `Lon: ${s_lon.toFixed(4)}, Lat: ${s_lat.toFixed(4)}`;
-                document.getElementById('stat-end').textContent = `Lon: ${e_lon.toFixed(4)}, Lat: ${e_lat.toFixed(4)}`;
-
-                const distanceKm = calculateDistance(s_lat, s_lon, e_lat, e_lon);
-                const speedKmh = 900;
-                const timeHours = distanceKm / speedKmh;
-                const hours = Math.floor(timeHours);
-                const minutes = Math.round((timeHours - hours) * 60);
-
-                document.getElementById('stat-distance').textContent = `Distance: ${distanceKm.toFixed(2)} km`;
-                document.getElementById('stat-time').textContent = `Est. Flight Time: ${hours}h ${minutes}m`;
-
-            } else {
-                // --- SPLASH SCREEN MODE ---
-                sidebar.classList.add('hidden');
-                overlay.classList.remove('hidden');
-
-                document.getElementById('start-btn').addEventListener('click', () => {
-                    window.location.href = '2d-map.html'; 
-                });
-                
-                // FIX 3: Start the constant rotation animation
-                animateGlobe(); 
-            }
-
-            // Handle resizing for both modes
+            // Handle resizing for both modes (outside the fetch)
             window.addEventListener('resize', () => {
                 const newWidth = isVisualizationMode ? window.innerWidth - 350 : window.innerWidth;
                 myGlobe.width(newWidth).height(window.innerHeight);
             });
         }
+        
+        // This function is no longer needed since we are not using custom Three.js stars
+        // function addStarsToScene(scene) { ... } 
 
         const initialParams = getUrlParams();
         window.onload = () => handleVisualization(initialParams);
+
+        // --- JAVASCRIPT FOR GLOBBIE JR. INTERACTIVITY ---
+        document.addEventListener('DOMContentLoaded', function() {
+            const globbieWidget = document.getElementById('globbie-widget');
+            const globbieMessage = document.getElementById('globbieMessage'); // Text element inside the bubble
+            const globbieBubble = document.getElementById('globbie-message-box'); // The bubble container
+
+    // Ensure all elements exist
+    if (globbieWidget && globbieMessage && globbieBubble) { 
+
+        const insightMessages = [
+            "🌍 I'm Globbie Jr.! Remember to choose the lowest CO₂ route for a Green Path!",
+            "🌿 Did you know that air travel contributes around 2.5% of global CO₂ emissions?",
+            "💨 Short-haul flights (under 1,500 km) are the least efficient way to travel per passenger mile.",
+            "💡 Visualize your carbon footprint to reduce your impact! That's why I'm here.",
+            "⭐ The most sustainable route is often the one you *don't* take. Consider video conferencing!",
+            "🌱 Compare flight data carefully—newer planes are significantly more fuel-efficient.",
+            "✨ Thanks for planning your journey mindfully!"
+        ];
+        let messageIndex = 0;
+
+        globbieWidget.addEventListener('click', () => {
+            // Add the 'visible' class
+            globbieBubble.classList.add('visible');
+            
+            // Set the text
+            globbieMessage.textContent = insightMessages[messageIndex];
+            
+            // Cycle the index
+            messageIndex = (messageIndex + 1) % insightMessages.length;
+            
+            // Set the 5-second timer to hide it
+            setTimeout(() => {
+                globbieBubble.classList.remove('visible');
+            }, 5000);
+
+            // Add bounce animation (optional, but good visual feedback)
+            globbieWidget.classList.add('bouncing');
+            setTimeout(() => {
+                globbieWidget.classList.remove('bouncing');
+            }, 500); 
+        });
+    }
+});
     </script>
+    
 </body>
 </html>
