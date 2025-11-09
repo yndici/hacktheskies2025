@@ -5,26 +5,23 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Star Path</title>
 
-        <!-- Load single UMD Three.js first, then Globe UMD that uses the global THREE -->
         <script src="https://unpkg.com/three@0.152.2/build/three.min.js"></script>
         <script src="https://unpkg.com/globe.gl@2.45.0/dist/globe.gl.min.js"></script>
 
         <style>
         :root{
             --primary-font: 'Inter', sans-serif;
-            /* Defining vibrant gradient colors */
-            --gradient-start: #1abc9c; /* Vibrant Teal */
-            --gradient-end: #8e44ad;   /* Vibrant Purple */
+            --gradient-start: #1abc9c; 
+            --gradient-end: #8e44ad;
         }
         body { 
             margin: 0; 
             overflow: hidden; 
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; 
             background-color: transparent; 
-            transition: all 0.4s; /* Added transition for theme change */
+            transition: all 0.4s; 
         }
 
-        /* Info Overlay (Splash Screen) */
         #info-overlay {
             position: absolute;
             top: 0;
@@ -47,15 +44,14 @@
             align-items: center;
             text-align: center;
         }
-        /* --- H1 SPARKLING TITLE EFFECT --- */
+
         h1 { 
             font-size: 3.5em; 
-            margin-bottom: 25px; /* Increased margin for sparkle effect */
+            margin-bottom: 25px; 
             font-weight: 900;
             letter-spacing: 2px;
-            position: relative; /* CRITICAL for the sparkle pseudo-element */
+            position: relative; 
             
-            /* Text Glow for Star Path */
             color: #fff; 
             text-shadow: 
                 0 0 5px rgba(255, 255, 255, 0.8), 
@@ -156,7 +152,7 @@
             box-shadow: none;
         }
 
-        /* Secondary / small toggle */
+        /* Secondary small toggle */
         #mode-toggle-btn {
             padding: 10px 14px;
             font-size: 0.95rem;
@@ -171,7 +167,7 @@
         
         .hidden { display: none !important; }
 
-        /* Sidebar fixed (hidden by default via .hidden). When shown it overlays left */
+        /* Sidebar fixed */
         #sidebar {
             width: 350px;
             height: 100vh;
@@ -182,12 +178,12 @@
             position: fixed;
             left: 0;
             top: 0;
-            background-color: rgba(255, 255, 255, 0.95); /* Light Mode Background */
+            background-color: rgba(255, 255, 255, 0.95); 
             color: #333;
             transition: transform 0.32s ease, opacity 0.32s ease;
-            transform: translateX(-100%); /* hide off-screen by default */
+            transform: translateX(-100%); 
         }
-        /* when visible, sidebar slides in */
+     
         #sidebar:not(.hidden) { transform: translateX(0); }
 
         #globeViz {
@@ -220,7 +216,6 @@
         }
 
         /* Journey Visualization*/
-
         #sidebar {
             width: 350px;
             height: 100vh;
@@ -308,22 +303,21 @@
         
         /* --- GLOBBIE JR. MASCOT WIDGET STYLES --- */
         #globbie-widget {
-            position: fixed; /* Makes it independent */
+            position: fixed; 
             bottom: 20px; 
             right: 20px; 
             width: 200px; 
             height: 200px;
             border-radius: 50%;
             cursor: pointer;
-            z-index: 100005; /* Ensures it overlays everything */
+            z-index: 100005; 
             display: flex;
             justify-content: center;
             align-items: center;
             
             transition: transform 0.2s, box-shadow 0.2s;
             overflow: hidden; 
-            
-            /* Floating Animation */
+
             animation: float 4s ease-in-out infinite; 
         }
 
@@ -344,25 +338,23 @@
                 transform: translateY(0);
             }
             50% {
-                transform: translateY(-8px); /* Moves up 8 pixels */
+                transform: translateY(-8px);
             }
             100% {
                 transform: translateY(0);
             }
         }
 
-        /* Keyframe Animation for Click Interaction */
         @keyframes bounce {
             0%, 100% {
                 transform: translateY(0);
             }
             50% {
-                transform: translateY(-15px); /* Jump up higher */
+                transform: translateY(-15px); 
             }
         }
 
         .bouncing {
-            /* Temporarily override the float animation with a bounce */
             animation: bounce 0.5s ease-out !important; 
         }
 
@@ -394,10 +386,9 @@
             opacity: 1;
             visibility: visible;
             transform: translateY(0);
-            pointer-events: auto; /* Re-enable interaction when visible */
+            pointer-events: auto; 
         }
 
-        /* Arrow/Tail for the Speech Bubble (Points toward the mascot) */
         #globbie-message-box::after {
             content: "";
             position: absolute;
@@ -631,8 +622,6 @@
         function estimateCO2e(distanceKm, opts = {}) {
             const { flightClass = 'economy', includeRadiativeForcing = true, passengers = 1 } = opts;
 
-            // Base per-passenger-km CO₂ (kg per p-km), rough typical values by sector:
-            // short (<1500 km) less efficient per km; long-haul more efficient per km
             let intensity; // kg CO2 per passenger-km
             if (distanceKm < 1500) intensity = 0.255;
             else if (distanceKm < 4000) intensity = 0.150;
@@ -647,7 +636,7 @@
             };
             const classMul = classMultipliers[flightClass] || 1.0;
 
-            // Radiative forcing index (non-CO2 effects). Typical multiplier ~1.9 (useable as default)
+            // Radiative forcing index (non-CO2 effects). Typical multiplier is 1.9
             const rfi = includeRadiativeForcing ? 1.9 : 1.0;
 
             // per-passenger emissions (kg)
@@ -674,9 +663,6 @@
 
         function computeJourneyAnalytics(distanceKm, perPassengerKg, passengers = 1, rfi = 1.9) {
             const totalKg = perPassengerKg * (passengers || 1); // total for trip (all passengers)
-
-            // If perPassengerKg includes RFI (as our estimateCO2e default does),
-            // CO2-only = total / rfi, non-CO2 = total - CO2-only
             const co2OnlyKg = totalKg / rfi;
             const nonCO2Kg = Math.max(0, totalKg - co2OnlyKg);
 
@@ -684,12 +670,12 @@
             const carKgPerKm = 0.192; // kg CO2 per km for average car (~192 g/km)
             const kghPerKwh = 0.475; // kg CO2 per kWh (grid-average placeholder)
             const kgPerLiterFuel = 2.5; // approx kg CO2 per liter jet fuel
-            const treeSequestrationPerYearKg = 21; // kg CO2 sequestered per tree per year (approx)
+            const treeSequestrationPerYearKg = 21; // kg CO2 per year
 
             const carKmEquivalent = totalKg / carKgPerKm; // km driven by car
             const kWhEquivalent = totalKg / kghPerKwh; // kWh of household electricity
             const fuelLitres = totalKg / kgPerLiterFuel; // liters of jet fuel equivalent
-            const treeYears = totalKg / treeSequestrationPerYearKg; // tree-years required
+            const treeYears = totalKg / treeSequestrationPerYearKg; //treeY
             const treesNeeded = totalKg / treeSequestrationPerYearKg;
             const treesFor10Years = totalKg / (treeSequestrationPerYearKg * 10);
             return {
@@ -714,31 +700,28 @@
                  + `≈ ${a.fuelLitres.toFixed(1)} L jet fuel`;
         }
 
-        /* ----------------- MODE / OCCUPANCY ESTIMATOR ----------------- */
-        // returns { perPassengerKg, totalKg, label }
+        /* Occupancy Modes */
         function estimateByMode(distanceKm, mode, opts = {}) {
             const passengers = Math.max(1, parseInt(opts.occupancy || 1, 10));
             const flightClass = opts.flightClass || 'economy';
             const rfi = parseFloat(opts.rfi || 1.9);
 
-            // Flight uses existing estimateCO2e but we'll compute base-without-RFI then apply rfi
             if (mode === 'flight_short' || mode === 'flight_long' || mode === 'flight_auto') {
-                // choose short/long threshold consistent with estimateCO2e
                 const includeRfiInEstimate = false;
                 const base = estimateCO2e(distanceKm, { flightClass, includeRadiativeForcing: includeRfiInEstimate, passengers: 1 }).kg;
                 const perPassengerWithRfi = base * rfi;
                 return { perPassengerKg: perPassengerWithRfi, totalKg: perPassengerWithRfi * passengers, label: `Flight (${flightClass})` };
             }
 
-            // Train: use average per-passenger intensity (kg per p-km)
+            // Train: use average per-passenger intensity 
             if (mode === 'train') {
-                const trainPpkm = 0.041; // kg CO2 per passenger-km (placeholder average)
+                const trainPpkm = 0.041; // kg CO2 per passenger-km 
                 const perPassengerKg = trainPpkm * distanceKm;
                 return { perPassengerKg, totalKg: perPassengerKg * passengers, label: 'Train' };
             }
 
             if (mode === 'bus') {
-                const busPpkm = 0.05; // kg CO2 per passenger-km (avg coach)
+                const busPpkm = 0.05; 
                 const perPassengerKg = busPpkm * distanceKm;
                 return { perPassengerKg, totalKg: perPassengerKg * passengers, label: 'Bus / Coach' };
             }
@@ -759,7 +742,7 @@
                 return { perPassengerKg, totalKg: totalVehicleKg, label: `Car (${vehicleType.replace('car_','')})` };
             }
 
-            // fallback: treat as train
+            // fallback
             const fallbackPpkm = 0.05;
             const perPassengerKg = fallbackPpkm * distanceKm;
             return { perPassengerKg, totalKg: perPassengerKg * passengers, label: mode };
@@ -768,12 +751,10 @@
         // call this to re-run analytics display given a distance (used in visualization mode)
         function recalcAndRender(distanceKm) {
             if (!distanceKm || distanceKm <= 0) return;
-            // read UI
             const mode = (document.getElementById('mode-select') || {}).value || 'flight_long';
             const vehicleType = (document.getElementById('vehicle-type-select') || {}).value || 'car_medium';
             const occupancy = parseInt((document.getElementById('occupancy') || {}).value || '1', 10);
             const flightClass = (document.getElementById('flight-class-select') || {}).value || 'economy';
-            // use any RFI control if present, otherwise default 1.9
             const rfiEl = document.getElementById('rfi-range');
             const rfi = rfiEl ? parseFloat(rfiEl.value) : 1.9;
 
@@ -786,7 +767,6 @@
             const eco = computeEcoScore(perKg, distanceKm);
             document.getElementById('stat-score').textContent = `Score: ${eco} / 100`;
 
-            // recompute analytics and render equivalents / offsets
             const analytics = computeJourneyAnalytics(distanceKm, perKg, Math.max(1, occupancy), rfi);
             const eqEl = document.getElementById('stat-equivalents');
             const offEl = document.getElementById('stat-offset');
@@ -796,7 +776,6 @@
             if (nonEl) nonEl.textContent = `Non‑CO₂ share: ${analytics.nonCO2Kg.toFixed(1)} kg (${((analytics.nonCO2Kg/analytics.totalKg)*100).toFixed(0)}%)`;
         }
 
-        /* Wire small mode/occupancy UI (called when sidebar shown in visualization mode) */
         function wireModeControls(distanceKm) {
             const ids = ['mode-select', 'vehicle-type-select', 'occupancy', 'flight-class-select', 'rfi-range'];
             ids.forEach(id => {
@@ -823,7 +802,7 @@
             const initialWidth = isVisualizationMode ? window.innerWidth - 350 : window.innerWidth;
             const initialTheme = THEMES[currentMode];
 
-            // 1. Initialize Globe (Base Config Only)
+            // 1. Initialize Globe 
             myGlobe = GlobeFactory()(CONTAINER)
                 .globeImageUrl(initialTheme.globeImage)
                 .bumpImageUrl('//unpkg.com/three-globe/example/img/earth-topology.png')
@@ -839,7 +818,7 @@
                 if (typeof myGlobe.renderer === 'function') {
                     const renderer = myGlobe.renderer();
                     if (renderer && typeof renderer.setClearColor === 'function') {
-                        renderer.setClearColor(0x000000, 0); // alpha = 0 => transparent
+                        renderer.setClearColor(0x000000, 0); 
                     }
                 }
                 // also ensure the canvas background is transparent as a fallback
@@ -851,11 +830,9 @@
                     }
                 };
                 tryMakeCanvasTransparent();
-                // sometimes renderer/canvas appear a moment later, retry once
                 setTimeout(tryMakeCanvasTransparent, 250);
             } catch (e) { console.warn('Could not set renderer transparency:', e); }
 
-            // ensure stars image visibility matches current theme
             try {
                 const stars = document.getElementById('stars-bg');
                 if (stars) stars.style.opacity = (currentMode === 'dark') ? '1' : '0';
@@ -942,7 +919,7 @@
                         wireModeControls(distanceKm);
                         
                     } else {
-                        // --- SPLASH SCREEN MODE ---
+                        // SPLASH SCREEN MODE
                         sidebar.classList.add('hidden');
                         overlay.classList.remove('hidden');
                         document.body.classList.remove('sidebar-open');
@@ -951,25 +928,20 @@
                             window.location.href = `2d-map.html?mode=${currentMode}`;
                         });
                         
-                        animateGlobe(); // START SPINNING HERE, AFTER DATA IS READY
+                        animateGlobe(); 
                     }
                 })
                 .catch(error => {
                     console.error("Critical: Failed to load map data.", error);
-                    // Enable the button anyway in case of failure to prevent UI lockup
                     document.getElementById('mode-toggle-btn').disabled = false; 
                 });
 
-            // Handle resizing for both modes (outside the fetch)
             window.addEventListener('resize', () => {
                 const newWidth = isVisualizationMode ? window.innerWidth - 350 : window.innerWidth;
                 myGlobe.width(newWidth).height(window.innerHeight);
             });
         }
         
-        // This function is no longer needed since we are not using custom Three.js stars
-        // function addStarsToScene(scene) { ... } 
-
         const initialParams = getUrlParams();
         window.onload = () => handleVisualization(initialParams);
 
@@ -994,21 +966,14 @@
         let messageIndex = 0;
 
         globbieWidget.addEventListener('click', () => {
-            // Add the 'visible' class
             globbieBubble.classList.add('visible');
-            
-            // Set the text
             globbieMessage.textContent = insightMessages[messageIndex];
-            
-            // Cycle the index
             messageIndex = (messageIndex + 1) % insightMessages.length;
             
-            // Set the 5-second timer to hide it
             setTimeout(() => {
                 globbieBubble.classList.remove('visible');
             }, 5000);
 
-            // Add bounce animation (optional, but good visual feedback)
             globbieWidget.classList.add('bouncing');
             setTimeout(() => {
                 globbieWidget.classList.remove('bouncing');

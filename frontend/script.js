@@ -1,5 +1,3 @@
-// script.js
-
 function getQueryParams() {
     const params = {};
     const queryString = window.location.search.substring(1);
@@ -12,7 +10,6 @@ function getQueryParams() {
 }
 const urlParams = getQueryParams();
 
-// When the page loads, pre-fill the form fields
 document.addEventListener('DOMContentLoaded', () => {
     const originField = document.getElementById('origin');
     const destinationField = document.getElementById('destination');
@@ -24,16 +21,13 @@ document.addEventListener('DOMContentLoaded', () => {
         destinationField.value = `${urlParams.destination}`;
     }
     
-    // Optional: Auto-submit the form if both coordinates are present
     if (urlParams.origin && urlParams.destination) {
         document.getElementById('route-form').dispatchEvent(new Event('submit'));
     }
 });
 
 
-// --- PARTNER'S WORK AREA: CALCULATION LOGIC ---
 function calculateRouteData(origin, destination, time) {
-    // This is the MOCK DATA. Replace this with your actual calculation logic!
     const mockData = {
         drive_route: { co2_g: 1500, time_min: 25, pollution_risk: "High" },
         eco_route: { co2_g: 250, time_min: 32, pollution_risk: "Low" },
@@ -45,10 +39,6 @@ function calculateRouteData(origin, destination, time) {
     
     return mockData;
 }
-// --- END OF PARTNER'S WORK AREA ---
-
-
-// --- YOUR FRONTEND LOGIC (The Glue) ---
 
 document.getElementById('route-form').addEventListener('submit', function(e) {
     e.preventDefault();
